@@ -43,7 +43,7 @@ public class Transaction {
     }
 
     public String toString() {
-        return String.format("[%s;%s]: %s",
-                this.creationTime, this.blockHash, this.data);
+        return String.format("[%s;]: %s",
+                this.creationTime, this.data);
     }
 }

@@ -139,4 +139,8 @@ public class ResourceManager {
             return null;
         }
     }
+
+    public int getBlocksCount() {
+        return this.getBlocks().size();
+    }
 }

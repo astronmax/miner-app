@@ -23,4 +23,29 @@ public class Validator {
             this.bucket.clear();
         }
     }
+
+    public static boolean validateChain(String databasePath) {
+        final ResourceManager rm = new ResourceManager(databasePath);
+        List<Block> blocks = rm.getBlocks();
+
+        String prevHash = blocks.get(0).getHash();
+        for (Block block : blocks.subList(1, blocks.size())) {
+            List<Transaction> trs = rm.getTransactions(block.getHash());
+            byte[] hash = HashTool.getBlockHash(block, trs);
+            String realHash = HashTool.getHashString(hash);
+
+            if (!prevHash.equals(block.getPrevHash())) {
+                return false;
+            }
+
+            if (!realHash.equals(block.getHash())) {
+                System.out.println(realHash + " " + block.getHash());
+                return false;
+            }
+
+            prevHash = block.getHash();
+        }
+
+        return true;
+    }
 }

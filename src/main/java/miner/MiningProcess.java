@@ -10,7 +10,9 @@ public class MiningProcess implements Runnable {
     private Logger logger = LoggerFactory.getLogger(Validator.class);
     private List<Transaction> stage;
     private Block lastBlock;
-    private final ResourceManager rm = new ResourceManager("data.db");
+
+    private final String localDB = "data.db";
+    private final ResourceManager rm = new ResourceManager(localDB);
 
     public MiningProcess(List<Transaction> stage) {
         this.stage = stage;
@@ -33,9 +35,16 @@ public class MiningProcess implements Runnable {
         newBlock.setHash(HashTool.getHashString(hash));
         this.stage.forEach((tr) -> tr.setBlockHash(newBlock.getHash()));
 
+        logger.info("Get new block: " + newBlock.getHash());
+
+        if (Validator.validateChain(localDB)) {
+            logger.info("Local chain is correct");
+        } else {
+            logger.error("Local chain is corrupted");
+            logger.info("Attempt to get chain from other miners");
+        }
+
         rm.saveBlock(newBlock);
         rm.saveTransactions(this.stage);
-
-        logger.info("GET NEW BLOCK: " + newBlock.toString());
     }
 }
