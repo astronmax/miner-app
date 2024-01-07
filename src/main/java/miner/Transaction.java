@@ -4,13 +4,17 @@
 
 package miner;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
-public class Transaction {
+public class Transaction implements Serializable {
 
     private String data;
     private LocalDateTime creationTime;
     private String blockHash;
+
+    public Transaction() {
+    }
 
     public Transaction(String data) {
         this.data = data;
@@ -42,8 +46,29 @@ public class Transaction {
         this.blockHash = blockHash;
     }
 
+    @Override
     public String toString() {
-        return String.format("[%s;]: %s",
+        return String.format("[%s]: %s",
                 this.creationTime, this.data);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        Transaction tr = (Transaction) obj;
+        if (!this.data.equals(tr.getData())) {
+            return false;
+        }
+
+        if (!this.creationTime.equals(tr.getCreationTime())) {
+            return false;
+        }
+
+        if (this.blockHash != null) {
+            if (!this.blockHash.equals(tr.getBlockHash())) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

@@ -11,11 +11,20 @@ import org.springframework.web.multipart.MultipartFile;
 public class RequestHandler {
 
     @Autowired
-    Validator validator;
+    private Validator validator;
+
+    private final DataSender dataSender = new DataSender();
 
     @PostMapping("/save")
     public void saveTransaction(@RequestBody String data) {
-        this.validator.saveTransaction(new Transaction(data));
+        Transaction tr = new Transaction(data);
+        this.validator.saveTransaction(tr);
+        this.dataSender.sendTransaction(tr);
+    }
+
+    @PostMapping("/saveFromMiner")
+    public void saveTransactionFromMiner(@RequestBody Transaction tr) {
+        validator.saveTransaction(tr);
     }
 
     @PostMapping("/upload")

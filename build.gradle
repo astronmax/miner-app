@@ -17,5 +17,5 @@ repositories {
 
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
-	implementation 'org.xerial:sqlite-jdbc:'
+	implementation 'org.xerial:sqlite-jdbc'
 }

@@ -23,12 +23,12 @@ public class Validator {
     private final int bucketSize = 5;
     private final String localDB = "data.db";
     private final String uploadDir = "uploads";
-    // private final String minersFile = "miners.txt";
 
     private List<Transaction> bucket;
     private int filesCount;
 
     private final ExecutorService executor = Executors.newFixedThreadPool(10);
+    final ResourceManager rm = new ResourceManager(this.localDB);
 
     public Validator() {
         this.bucket = new ArrayList<>();
@@ -42,12 +42,11 @@ public class Validator {
     }
 
     public boolean validateChain(String databasePath) {
-        final ResourceManager rm = new ResourceManager(databasePath);
-        List<Block> blocks = rm.getBlocks();
+        List<Block> blocks = this.rm.getBlocks();
 
         String prevHash = blocks.get(0).getHash();
         for (Block block : blocks.subList(1, blocks.size())) {
-            List<Transaction> trs = rm.getTransactions(block.getHash());
+            List<Transaction> trs = this.rm.getTransactions(block.getHash());
             byte[] hash = HashTool.getBlockHash(block, trs);
 
             if ((hash[0] != 0) || hash[1] != 0) {
@@ -82,9 +81,8 @@ public class Validator {
 
     public Future<Block> makeMining(List<Transaction> stage) {
         return this.executor.submit(() -> {
-            final ResourceManager rm = new ResourceManager(this.localDB);
             long nonce = 0;
-            Block lastBlock = rm.getLastBlock();
+            Block lastBlock = this.rm.getLastBlock();
 
             Block newBlock = new Block(lastBlock.getHash());
             newBlock.setNonce(nonce);
@@ -103,8 +101,6 @@ public class Validator {
 
     public void saveChanges(Future<Block> newBlock, List<Transaction> stage) {
         this.executor.submit(() -> {
-            final ResourceManager rm = new ResourceManager(this.localDB);
-
             try {
                 final Block block = newBlock.get();
                 stage.forEach((tr) -> tr.setBlockHash(block.getHash()));
@@ -113,8 +109,8 @@ public class Validator {
                 if (this.validateChain(this.localDB)) {
                     List<String> files = this.getUploadedChains();
                     if (!this.validateUploadedChains(files)) {
-                        rm.saveBlock(block);
-                        rm.saveTransactions(stage);
+                        this.rm.saveBlock(block);
+                        this.rm.saveTransactions(stage);
                     }
 
                 } else {
@@ -148,9 +144,8 @@ public class Validator {
     }
 
     public boolean validateUploadedChains(List<String> files) {
-        ResourceManager localRM = new ResourceManager(this.localDB);
 
-        int blocksCount = localRM.getBlocksCount();
+        int blocksCount = this.rm.getBlocksCount();
         String newChainName = "";
         for (String filename : files) {
             ResourceManager uploadRM = new ResourceManager(filename);

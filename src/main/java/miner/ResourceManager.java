@@ -63,7 +63,7 @@ public class ResourceManager {
             if (this.getBlocks().size() == 0) {
                 Block genesis = new Block("GENESIS");
                 genesis.setNonce(0);
-                genesis.setHash("00000000000000000000000000000000");
+                genesis.setHash("0000000000000000000000000000000000000000000000000000000000000000");
                 this.saveBlock(genesis);
             }
 
