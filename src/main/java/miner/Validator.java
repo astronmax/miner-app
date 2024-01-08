@@ -163,7 +163,7 @@ public class Validator {
 
         this.filesCount = 0;
         if (!newChainName.isEmpty()) {
-            System.out.println("found more cool chain: " + newChainName);
+            System.out.println("[+] FOUND CHAIN: " + newChainName);
             try {
                 Files.move(Paths.get(newChainName), Paths.get(this.localDB),
                         StandardCopyOption.REPLACE_EXISTING);
@@ -174,7 +174,6 @@ public class Validator {
             return true;
 
         } else {
-            System.out.println("No good uploaded chain avaiable");
             return false;
         }
     }
