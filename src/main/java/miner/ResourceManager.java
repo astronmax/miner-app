@@ -74,6 +74,14 @@ public class ResourceManager {
         }
     }
 
+    public void close() {
+        try {
+            this.connection.close();
+        } catch (final SQLException e) {
+            System.err.println(e.getMessage());
+        }
+    }
+
     public void saveBlock(Block block) {
         try {
             Statement stmt = this.connection.createStatement();

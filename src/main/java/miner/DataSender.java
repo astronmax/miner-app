@@ -1,10 +1,8 @@
 package miner;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.List;
 
 import org.springframework.http.HttpHeaders;
@@ -39,15 +37,7 @@ public class DataSender {
     }
 
     public void sendFile(String filename) {
-        String newFilename = filename + ".copy";
-        try {
-            Files.copy(Paths.get(filename), Paths.get(newFilename),
-                    StandardCopyOption.REPLACE_EXISTING);
-        } catch (final IOException e) {
-            System.err.println(e.getMessage());
-        }
-
-        MultipartFile file = new FileMultipartFile(Paths.get(newFilename));
+        MultipartFile file = new FileMultipartFile(Paths.get(filename));
 
         Resource resource = file.getResource();
         LinkedMultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
@@ -62,7 +52,5 @@ public class DataSender {
         for (String minerAdd : miners) {
             restTemplate.postForEntity(minerAdd + "/upload", httpEntity, Object.class);
         }
-
-        new File(newFilename).delete();
     }
 }

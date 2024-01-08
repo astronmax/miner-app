@@ -26,13 +26,14 @@ public class Validator {
 
     private List<Transaction> bucket;
     private int filesCount;
+    private boolean mutex;
 
     private final ExecutorService executor = Executors.newFixedThreadPool(10);
-    final ResourceManager rm = new ResourceManager(this.localDB);
 
     public Validator() {
         this.bucket = new ArrayList<>();
         this.filesCount = 0;
+        this.mutex = false;
 
         try {
             Files.createDirectories(Paths.get(this.uploadDir));
@@ -41,37 +42,10 @@ public class Validator {
         }
     }
 
-    public boolean validateChain(String databasePath) {
-        List<Block> blocks = this.rm.getBlocks();
-
-        String prevHash = blocks.get(0).getHash();
-        for (Block block : blocks.subList(1, blocks.size())) {
-            List<Transaction> trs = this.rm.getTransactions(block.getHash());
-            byte[] hash = HashTool.getBlockHash(block, trs);
-
-            if ((hash[0] != 0) || hash[1] != 0) {
-                return false;
-            }
-
-            String realHash = HashTool.getHashString(hash);
-            if (!prevHash.equals(block.getPrevHash())) {
-                return false;
-            }
-
-            if (!realHash.equals(block.getHash())) {
-                System.out.println(realHash + " " + block.getHash());
-                return false;
-            }
-
-            prevHash = block.getHash();
-        }
-
-        return true;
-    }
-
     public void saveTransaction(Transaction tr) {
         this.bucket.add(tr);
         if (bucket.size() == this.bucketSize) {
+            this.mutex = false;
             List<Transaction> stage = new ArrayList<>(this.bucket);
             Future<Block> newBlock = this.makeMining(stage);
             this.saveChanges(newBlock, stage);
@@ -81,8 +55,10 @@ public class Validator {
 
     public Future<Block> makeMining(List<Transaction> stage) {
         return this.executor.submit(() -> {
+            final ResourceManager rm = new ResourceManager(this.localDB);
             long nonce = 0;
-            Block lastBlock = this.rm.getLastBlock();
+            Block lastBlock = rm.getLastBlock();
+            rm.close();
 
             Block newBlock = new Block(lastBlock.getHash());
             newBlock.setNonce(nonce);
@@ -102,21 +78,23 @@ public class Validator {
     public void saveChanges(Future<Block> newBlock, List<Transaction> stage) {
         this.executor.submit(() -> {
             try {
+                ResourceManager rm = new ResourceManager(this.localDB);
                 final Block block = newBlock.get();
                 stage.forEach((tr) -> tr.setBlockHash(block.getHash()));
-                System.out.println("[+] NEW BLOCK: " + block.getHash());
 
-                List<String> files = this.getUploadedChains();
-                if (!this.validateUploadedChains(files)) {
-                    if (this.validateChain(this.localDB)) {
-                        this.rm.saveBlock(block);
-                        this.rm.saveTransactions(stage);
+                if (this.validateChain(this.localDB)) {
+                    if (this.mutex == false) {
+                        System.out.println("[+] NEW BLOCK: " + block.getHash());
+                        rm = new ResourceManager(this.localDB);
+                        rm.saveBlock(block);
+                        rm.saveTransactions(stage);
+                        rm.close();
 
                         DataSender sender = new DataSender();
                         sender.sendFile(this.localDB);
-                    } else {
-                        System.out.println("[-] CHAIN IS INVALID");
                     }
+                } else {
+                    System.out.println("[-] CHAIN IS INVALID");
                 }
 
             } catch (final InterruptedException e) {
@@ -132,6 +110,10 @@ public class Validator {
         try {
             String filename = "data_" + (++this.filesCount) + ".db";
             Files.copy(file.getInputStream(), Paths.get(this.uploadDir).resolve(filename));
+            this.executor.submit(() -> {
+                List<String> files = this.getUploadedChains();
+                this.mutex = this.validateUploadedChains(files);
+            });
 
         } catch (final IOException e) {
             System.err.println(e.getMessage());
@@ -146,8 +128,9 @@ public class Validator {
     }
 
     public boolean validateUploadedChains(List<String> files) {
-
-        int blocksCount = this.rm.getBlocksCount();
+        final ResourceManager rm = new ResourceManager(this.localDB);
+        int blocksCount = rm.getBlocksCount();
+        rm.close();
         String newChainName = "";
         for (String filename : files) {
             ResourceManager uploadRM = new ResourceManager(filename);
@@ -176,5 +159,35 @@ public class Validator {
         } else {
             return false;
         }
+    }
+
+    public boolean validateChain(String databasePath) {
+        final ResourceManager rm = new ResourceManager(databasePath);
+        List<Block> blocks = rm.getBlocks();
+
+        String prevHash = blocks.get(0).getHash();
+        for (Block block : blocks.subList(1, blocks.size())) {
+            List<Transaction> trs = rm.getTransactions(block.getHash());
+            byte[] hash = HashTool.getBlockHash(block, trs);
+
+            if ((hash[0] != 0) || hash[1] != 0) {
+                return false;
+            }
+
+            String realHash = HashTool.getHashString(hash);
+            if (!prevHash.equals(block.getPrevHash())) {
+                return false;
+            }
+
+            if (!realHash.equals(block.getHash())) {
+                System.out.println(realHash + " " + block.getHash());
+                return false;
+            }
+
+            prevHash = block.getHash();
+        }
+
+        rm.close();
+        return true;
     }
 }
