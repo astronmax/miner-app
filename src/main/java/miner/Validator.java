@@ -190,4 +190,26 @@ public class Validator {
         rm.close();
         return true;
     }
+
+    public Transaction getTransactionByHash(String hash) {
+        final ResourceManager rm = new ResourceManager(this.localDB);
+        List<Block> blocks = rm.getBlocks();
+
+        for (Transaction tr : this.bucket) {
+            if (HashTool.getHashString(HashTool.getHash(tr.toString())).equals(hash)) {
+                return tr;
+            }
+        }
+
+        for (Block block : blocks) {
+            List<Transaction> trs = rm.getTransactions(block.getHash());
+            for (Transaction tr : trs) {
+                if (HashTool.getHashString(HashTool.getHash(tr.toString())).equals(hash)) {
+                    return tr;
+                }
+            }
+        }
+
+        return null;
+    }
 }
