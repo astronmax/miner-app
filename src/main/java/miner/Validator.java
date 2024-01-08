@@ -106,15 +106,17 @@ public class Validator {
                 stage.forEach((tr) -> tr.setBlockHash(block.getHash()));
                 System.out.println("[+] NEW BLOCK: " + block.getHash());
 
-                if (this.validateChain(this.localDB)) {
-                    List<String> files = this.getUploadedChains();
-                    if (!this.validateUploadedChains(files)) {
+                List<String> files = this.getUploadedChains();
+                if (!this.validateUploadedChains(files)) {
+                    if (this.validateChain(this.localDB)) {
                         this.rm.saveBlock(block);
                         this.rm.saveTransactions(stage);
-                    }
 
-                } else {
-                    System.out.println("[-] CHAIN IS CORRUPTED");
+                        DataSender sender = new DataSender();
+                        sender.sendFile(this.localDB);
+                    } else {
+                        System.out.println("[-] CHAIN IS INVALID");
+                    }
                 }
 
             } catch (final InterruptedException e) {
