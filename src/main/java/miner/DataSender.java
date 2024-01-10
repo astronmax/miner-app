@@ -19,6 +19,10 @@ public class DataSender {
     private List<String> miners;
 
     public DataSender() {
+        this.updateMiners();
+    }
+
+    public void updateMiners() {
         try {
             this.miners = Files.readAllLines(Paths.get(this.minersFile));
 
@@ -28,6 +32,7 @@ public class DataSender {
     }
 
     public void sendTransaction(Transaction tr) {
+        this.updateMiners();
         RestTemplate restTemplate = new RestTemplate();
         HttpEntity<Transaction> requestEntity = new HttpEntity<>(tr);
         for (String minerAddr : miners) {
@@ -37,6 +42,7 @@ public class DataSender {
     }
 
     public void sendFile(String filename) {
+        this.updateMiners();
         MultipartFile file = new FileMultipartFile(Paths.get(filename));
 
         Resource resource = file.getResource();

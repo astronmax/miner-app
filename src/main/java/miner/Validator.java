@@ -147,6 +147,7 @@ public class Validator {
         this.filesCount = 0;
         if (!newChainName.isEmpty()) {
             System.out.println("[+] FOUND CHAIN: " + newChainName);
+            this.bucket.clear();
             try {
                 Files.move(Paths.get(newChainName), Paths.get(this.localDB),
                         StandardCopyOption.REPLACE_EXISTING);
