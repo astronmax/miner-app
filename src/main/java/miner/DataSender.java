@@ -1,8 +1,14 @@
 package miner;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.springframework.http.HttpHeaders;
@@ -22,9 +28,49 @@ public class DataSender {
         this.updateMiners();
     }
 
+    public List<String> getLocalAddresses() {
+        try {
+            List<String> result = new ArrayList<>();
+            List<NetworkInterface> ifaces = Collections.list(NetworkInterface.getNetworkInterfaces());
+            for (NetworkInterface iface : ifaces) {
+                Collections.list(iface.getInetAddresses())
+                        .stream()
+                        .forEach((addr) -> result.add(addr.getHostAddress()));
+            }
+
+            return result;
+
+        } catch (final SocketException e) {
+            System.err.println(e.getMessage());
+            return null;
+        }
+    }
+
+    public boolean isLocalAddress(String addr) {
+        for (String localAddr : this.getLocalAddresses()) {
+            if (localAddr.contains(addr)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public void updateMiners() {
         try {
-            this.miners = Files.readAllLines(Paths.get(this.minersFile));
+            this.miners = Files.readAllLines(Paths.get(this.minersFile))
+                    .stream()
+                    .map((dnsAddr) -> {
+                        try {
+                            return InetAddress.getByName(dnsAddr).getHostAddress();
+                        } catch (final UnknownHostException e) {
+                            System.err.println(e.getMessage());
+                            return null;
+                        }
+                    })
+                    .filter((addr) -> this.isLocalAddress(addr) == false)
+                    .map((addr) -> "http://" + addr + ":8080")
+                    .toList();
 
         } catch (final IOException e) {
             System.err.println(e.getMessage());
